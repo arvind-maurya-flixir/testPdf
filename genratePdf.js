@@ -1658,7 +1658,7 @@ const puppeteer = require('puppeteer');
 let browser;
 
 async function initializeBrowser() {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 }
 
 initializeBrowser();
@@ -1671,10 +1671,9 @@ async function generatePDF(req, res) {
         
         const page = await browser.newPage();
         await page.setContent(staticData);
-        const buffer = await page.pdf({ printBackground: true, format: 'A4' });
+        const buffer = await page.pdf();
         
-        await page.close(); // Close the page after generating PDF
-        
+        await page.close(); 
         res.contentType('application/pdf').send(buffer);
     } catch (error) {
         console.error('Error generating PDF:', error);
