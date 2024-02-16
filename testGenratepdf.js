@@ -1,4 +1,19 @@
-// const puppeteer = require('puppeteer');
+const axios = require('axios');
+const puppeteer = require('puppeteer');
+const cluster = require('puppeteer-cluster');
+const clusterSize = 4;
+const maxConcurrency = 10;
+const pool = []; 
+async function initializePool() {
+    for (let i = 0; i < clusterSize; i++) {
+        const browser = await puppeteer.launch({ headless: true });
+        pool.push(browser);
+    }
+    console.log('successfully pool created.')
+}
+initializePool()
+const fs = require('fs');
+let pdfHtmlCodeToGenrate = [];
 const staticData = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1653,35 +1668,415 @@ const staticData = `<!DOCTYPE html>
 </body>
 </html>
 `;
-const puppeteer = require('puppeteer');
+let topData = `<div class="page" >
+<div class="center-container">
+    <img src="https://i.postimg.cc/XYbjYVkL/Microsoft-Teams-image-1.jpg" alt="Logo">
+    <div class="text-container">
+      <h5>MAHARASHTRA STATE BOARD OF SECONDARY</h5>
+      <h5>AND HIGHER SECONDARY EDUCATION, PUNE</h5>
+    </div>
+  </div>
+<div style="font-size: 30px; text-align: center; padding: 0; margin: 0;"> ORAL/INTERNAL/PRACTICAL MARK LIST IN
+</div>
+<div style="text-align: center;">
+    <div>
+        <h3 style="font-size: 30px; color: rgb(32, 108, 194);"> Marks Entry For The Subject : <span
+                style="color: black;"> 38-HISTORY (MARCH-2024) </span>
+        </h3>
+    </div>
+</div>
+<table
+    style="border: 1px solid #dee2e6; border-collapse: collapse; box-sizing: border-box; border-spacing: 2px; display: table; margin-bottom: 20px; width: 100%;">
+    <thead>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">H.S.C
+            EXAM</th>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">DIVISION
+            CODE-NAME</th>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">JR.COLL
+            NO.</th>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">MEDIUM
+            CODE-NAME</th>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">MARKS
+            OUT OF</th>
+        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">PAGE NO.
+        </th>
+    </thead>
+    <tbody>
+        <tr>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+                2-HSC</td>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+                9-KONKAN</td>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+            </td>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+            </td>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+            </td>
+            <td
+               style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+                00001</td>
+        </tr>
+    </tbody>
+</table>
+<div>
+        `
+const signFooter = ` <div class="signclass" style=" width: 100%;">
+<div style="float: left; width: 32%; border: 1px solid #dee2e6;">
+    <p style="margin: 0; padding-left: 5px; border-bottom: 1px solid #dee2e6; font-weight: 500; font-size: 30px; ">Full
+        Signature & Date</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Name</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Sign</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Date</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">External Examiner</p>
+</div>
+<div style="float: left; width: 32%; border: 1px solid #dee2e6; margin-left: 20px;">
+    <p style="margin: 0; padding-left: 5px; border-bottom: 1px solid #dee2e6; font-weight: 500; font-size: 30px;">Full
+        Signature & Date</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Name</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Sign</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">Date</p>
+    <p style="margin: 0; margin-left: 5px; font-size: 30px; margin-top: 4px;">External Examiner</p>
+</div>
+<div
+    style=" text-align: center; float: left; width: 32%; border: 1px solid #dee2e6; padding-bottom: 10px; font-weight: 500; margin-left: 20px; font-size: 30px;">
+    Stamp And Signature
+</div>
 
-let browser;
-
-async function initializeBrowser() {
-    browser = await puppeteer.launch({ headless: true });
+</div>`;
+const noteFooter = ` <div>
+<p style="color: rgb(32, 108, 194); margin: 0; margin-bottom: 5px; font-size: 25px;
+font-weight: 500;  float: left; width: 100%; ">
+     Note: 1. AA = ABSENT 2. HH = HUNDRED MARKS
+</p>
+</div>`
+const bottomdata = `</div>`
+const tablePart1 = `
+<div class="table-container" style="width: 49%;">
+                <table
+                    style="border: 1px solid #dee2e6; border-collapse: collapse; box-sizing: border-box; border-spacing: 2px; display: table; margin-bottom: 20px; width: 100%;">
+                    <thead>
+                        <th
+                            style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6; width: 10%;">
+                            SR.NO.</th>
+                        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">
+                            SEAT NO.</th>
+                        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6; width: 25%; text-align: center;"
+                        colspan="2">MARKS
+                        </th>
+                    </thead>
+                    <tbody>`;
+const tablePart1table2 = `
+<div class="table-container" style="width: 49%; margin-left: 2%;">
+                <table
+                    style="border: 1px solid #dee2e6; border-collapse: collapse; box-sizing: border-box; border-spacing: 2px; display: table; margin-bottom: 20px; width: 100%;">
+                    <thead>
+                        <th
+                            style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6; width: 10%;">
+                            SR.NO.</th>
+                        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">
+                            SEAT NO.</th>
+                        <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6; width: 25%; text-align: center;"
+                        colspan="2">MARKS
+                        </th>
+                    </thead>
+                    <tbody>`
+const tablepartTow = `
+                    </tbody>
+            </table>
+        </div>`
+function pdfHtmlGenrateDataStringGenrator(data){
+let currentHtmlcode = "";
+ if(data.length>24){
+    let tablerowData = "";
+    for(let i = 0; i<24; i++){
+       tablerowData+= `<tr>
+       <td  style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: center; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].SrNo}</td>
+       <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].Seat}</td>
+       <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+       </td>
+       <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+       </td>
+       </tr>`
+    }
+    currentHtmlcode+=tablePart1+tablerowData+tablepartTow;
+    tablerowData = ""
+    for(let i = 24; i<data.length; i++){
+        tablerowData+= `<tr>
+        <td  style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: center; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].SrNo}</td>
+        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].Seat}</td>
+        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+        </td>
+        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+        </td>
+        </tr>`
+    }
+    currentHtmlcode+=tablePart1table2+tablerowData+tablepartTow;
+ }else{
+    let tablerowData = ""
+    for(let i = 0; i<data.length; i++){
+        tablerowData+= `<tr>
+                        <td  style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: center; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].SrNo}</td>
+                        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;" >${data[i].Seat}</td>
+                        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+                        </td>
+                        <td style=" padding: 0px; padding-bottom: 7px; padding-left: 8px; padding-top: 7px; text-align: left; width: 50px; border: 1px solid #dee2e6; font-size: 30px;">
+                        </td>
+                        </tr>`
+    }
+    currentHtmlcode+=tablePart1+tablerowData+tablepartTow;
+ }
+ pdfHtmlCodeToGenrate.push(topData+currentHtmlcode+bottomdata+noteFooter+signFooter+bottomdata)
+}
+function processDataInBatches(dataArray) {
+for (let i = 0; i < dataArray.length; i += 48) {
+    const dataBatch = dataArray.slice(i, i + 48);
+    pdfHtmlGenrateDataStringGenrator(dataBatch);
 }
 
-initializeBrowser();
-
-async function generatePDF(req, res) {
-    try {
-        if (!browser) {
-            return res.status(503).send('Service Unavailable');
+}
+const generateUniqueFilePath = () => {
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, ''); // Format: YYYYMMDD
+    const timePart = now.toISOString().slice(11, 19).replace(/:/g, ''); // Format: HHMMSS
+    const uniqueString = `${"OutPutReport"}_${datePart}_${timePart}`;
+    return `./tmp/${uniqueString}.pdf`;
+};
+async function generatePDF(req,res) {
+   try {
+    // const Page = "00102"
+    // const ApiData = await getData(Page);
+    // const pagesData = ApiData.data[1].data;
+    // console.log(pagesData);
+    // processDataInBatches(ApiData.data[2].data);
+    // if(pagesData.length>0){
+    //     for(let i = 0; i<pagesData.length; i++){
+    //         const LooppData = await getData(pagesData[i].Page);
+    //         console.log(LooppData);
+    //         topData = `<div class="page" >
+    //         <div class="center-container">
+    //             <img src="https://i.postimg.cc/XYbjYVkL/Microsoft-Teams-image-1.jpg" alt="Logo">
+    //             <div class="text-container">
+    //               <h5>MAHARASHTRA STATE BOARD OF SECONDARY</h5>
+    //               <h5>AND HIGHER SECONDARY EDUCATION, PUNE</h5>
+    //             </div>
+    //           </div>
+    //         <div style="font-size: 30px; text-align: center; padding: 0; margin: 0;"> ORAL/INTERNAL/PRACTICAL MARK LIST IN
+    //         </div>
+    //         <div style="text-align: center;">
+    //             <div>
+    //                 <h3 style="font-size: 30px; color: rgb(32, 108, 194);"> Marks Entry For The Subject : <span
+    //                         style="color: black;"> 38-HISTORY (MARCH-2024) </span>
+    //                 </h3>
+    //             </div>
+    //         </div>
+    //         <table
+    //             style="border: 1px solid #dee2e6; border-collapse: collapse; box-sizing: border-box; border-spacing: 2px; display: table; margin-bottom: 20px; width: 100%;">
+    //             <thead>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">H.S.C
+    //                     EXAM</th>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">DIVISION
+    //                     CODE-NAME</th>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">JR.COLL
+    //                     NO.</th>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">MEDIUM
+    //                     CODE-NAME</th>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">MARKS
+    //                     OUT OF</th>
+    //                 <th style="color: rgb(32, 108, 194); padding: 5px; font-size: 30px; border: 1px solid #dee2e6;">PAGE NO.
+    //                 </th>
+    //             </thead>
+    //             <tbody>
+    //                 <tr>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${LooppData.data[0].data[0].EXAM}</td>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${LooppData.data[0].data[0].DIVISION}</td>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${LooppData.data[0].data[0].SCHOOLNO}
+    //                     </td>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${LooppData.data[0].data[0].MEDIUM}
+    //                     </td>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${LooppData.data[0].data[0].MarksOutOf}
+    //                        </td>
+    //                     <td
+    //                        style="padding: 0px; padding-bottom: 5px; padding-top: 5px; text-align: center; border: 1px solid #dee2e6; font-size: 30px;">
+    //                        ${pagesData[i].Page}</td>
+    //                 </tr>
+    //             </tbody>
+    //         </table>
+    //         <div>
+    //     `
+    //         processDataInBatches(LooppData.data[2].data);
+    //     }
+    // }
+    // console.log(pdfHtmlCodeToGenrate.join(""));
+    const fullHtml = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+      <title>Multi-Page PDF</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
         }
-        
-        const page = await browser.newPage();
-        await page.setContent(staticData);
-        const buffer = await page.pdf({ printBackground: true, format: 'A4' });
-        
-        await page.close(); // Close the page after generating PDF
-        
-        res.contentType('application/pdf').send(buffer);
+        .page {
+            width: 400mm; 
+          height: 580mm;
+          page-break-after: always;
+        }
+        .table-container {
+          float: left; /* Use float for horizontal layout */
+          width: 50%; /* Adjust width as needed */
+        }
+        .center-container {
+          text-align: center;
+        }
+        .center-container img {
+          width: 80px;
+          display: inline-block;
+          vertical-align: middle;
+        }
+        .text-container {
+          display: inline-block;
+          vertical-align: middle;
+          text-align: left; /* Align text to the left within the container */
+        }
+        .center-container h5 {
+          color: rgb(32, 108, 194);
+          font-size: 30px;
+          margin: 0; /* Remove margin for text */
+        }
+        tbody>tr:nth-child(even){
+            background-color: #f0eded;
+        }
+        ..signclass{
+            height: 350px;
+        }
+        .signclass > * {
+            height: 100%;
+        }
+      </style>
+    </head>
+    <body>
+     ${pdfHtmlCodeToGenrate.join("")}
+    </body>
+    </html>
+    `
+    const pdfFilePath = generateUniqueFilePath();
+    pdfHtmlCodeToGenrate = [];
+    // const conversion = require("phantom-html-to-pdf")();
+    // const options = {
+    //     html: staticData,
+    //     paperSize: {
+    //       format: 'A4',
+    //       orientation: 'portrait',
+    //     },
+    //   };
+    // conversion(options, function(err, pdf) {
+    //     if(err){
+    //         res.status(500).send({ res: 'error', error: 'PDF generation failed' });
+    //        return;
+    //     }
+    //   const output = fs.createWriteStream(pdfFilePath)
+    //   pdf.stream.pipe(output);
+    //   setTimeout(() => {
+    //     fs.unlink(pdfFilePath, (error) => {
+    //       if (error) {
+    //         console.log('Error deleting PDF file:', error);
+    //       } else {
+    //         console.log(pdfFilePath,'PDF file deleted successfully after 1 minutes.');
+    //       }
+    //     });
+    //   }, 1000 * 60 * 1000);
+    //   const filepathelm = pdfFilePath.split('/');
+    //   console.log('pdf genrated');
+    //    res.send({
+    //     res: 'success',
+    //     pdfFilePath: `http://localhost:3001/download/${filepathelm[filepathelm.length-1]}`
+    //    })
+    // });
+    let browser;
+    browser = pool.pop();
+    const page = await browser.newPage();
+    await page.setContent(staticData);
+    const buffer = await page.pdf({ printBackground: true, format: 'A4' });
+   return res.contentType('application/pdf').send(buffer);
+   } catch (error) {
+     console.log(error);
+     res.status(501).send({
+        res: 'failed'
+       })
+   }
+}
+// Launch a smaller pool of Puppeteer instances (adjust as needed)
+
+async function generatePdf(htmlString) {
+  try {
+      const page = await cluster.task(async () => {
+      const page = await browser.newPage();
+      await page.setContent(htmlString);
+      const buffer = await page.pdf({ printBackground: true, format: 'A4' });
+      await page.close();
+      return buffer;
+    });
+    return page;
+  } catch (error) {
+    // Handle errors gracefully (e.g., log, send error message)
+    console.error('Error generating PDF:', error);
+    return null;
+  }
+}
+
+// Handle incoming requests with rate limiting and error handling
+
+
+// ... server setup and error handling
+async function getData(page){
+    try {
+        const response = await axios.post('http://192.168.1.27:1004/api/v1/IAMarks/IASubjectsMarks', {
+            SchId: "2501001",
+            HSCSubCode: "48",
+            PaperCode: "3",
+            Language: "1",
+            Page: page
+        }, {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+        return response.data;
     } catch (error) {
-        console.error('Error generating PDF:', error);
-        res.status(500).send('Internal Server Error');
+        console.error('Error fetching data:', error.message);
+        throw error;
     }
 }
-
+process.on('SIGTERM', () => {
+    server.close(async () => {
+        console.log('Server closed');
+        for (const browser of pool) {
+            await browser.close();
+        }
+        process.exit(0);
+    });
+});
 module.exports = {
     generatePDF
-};
+}
