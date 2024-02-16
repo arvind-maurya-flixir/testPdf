@@ -23,7 +23,8 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "phantom-html-to-pdf": "^0.8.3",
-    "puppeteer": "^22.0.0",
+    "puppeteer": "^21.10.0",
+    "puppeteer-pdf":"^1.2.0",
     "puppeteer-cluster": "^0.23.0",
     "tedious": "^16.6.1"
   }

@@ -1658,7 +1658,7 @@ const puppeteer = require('puppeteer');
 let browser;
 
 async function initializeBrowser() {
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'], executablePath:'/usr/bin/chromium-browser' });
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
 }
 
 initializeBrowser();
