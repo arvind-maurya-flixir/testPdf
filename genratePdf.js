@@ -1,4 +1,17 @@
 const axios = require('axios');
+const puppeteer = require('puppeteer');
+const cluster = require('puppeteer-cluster');
+const clusterSize = 4;
+const maxConcurrency = 10;
+const pool = []; 
+async function initializePool() {
+    for (let i = 0; i < clusterSize; i++) {
+        const browser = await puppeteer.launch({ headless: true });
+        pool.push(browser);
+    }
+    console.log('successfully pool created.')
+}
+initializePool()
 const fs = require('fs');
 let pdfHtmlCodeToGenrate = [];
 const staticData = `<!DOCTYPE html>
@@ -1968,37 +1981,45 @@ async function generatePDF(req,res) {
     `
     const pdfFilePath = generateUniqueFilePath();
     pdfHtmlCodeToGenrate = [];
-    const conversion = require("phantom-html-to-pdf")();
-    const options = {
-        html: staticData,
-        paperSize: {
-          format: 'A4',
-          orientation: 'portrait',
-        },
-      };
-    conversion(options, function(err, pdf) {
-        if(err){
-            res.status(500).send({ res: 'error', error: 'PDF generation failed' });
-           return;
-        }
-      const output = fs.createWriteStream(pdfFilePath)
-      pdf.stream.pipe(output);
-      setTimeout(() => {
-        fs.unlink(pdfFilePath, (error) => {
-          if (error) {
-            console.log('Error deleting PDF file:', error);
-          } else {
-            console.log(pdfFilePath,'PDF file deleted successfully after 1 minutes.');
-          }
-        });
-      }, 1000 * 60 * 1000);
-      const filepathelm = pdfFilePath.split('/');
-      console.log('pdf genrated');
-       res.send({
-        res: 'success',
-        pdfFilePath: `http://localhost:3001/download/${filepathelm[filepathelm.length-1]}`
-       })
-    });
+    // const conversion = require("phantom-html-to-pdf")();
+    // const options = {
+    //     html: staticData,
+    //     paperSize: {
+    //       format: 'A4',
+    //       orientation: 'portrait',
+    //     },
+    //   };
+    // conversion(options, function(err, pdf) {
+    //     if(err){
+    //         res.status(500).send({ res: 'error', error: 'PDF generation failed' });
+    //        return;
+    //     }
+    //   const output = fs.createWriteStream(pdfFilePath)
+    //   pdf.stream.pipe(output);
+    //   setTimeout(() => {
+    //     fs.unlink(pdfFilePath, (error) => {
+    //       if (error) {
+    //         console.log('Error deleting PDF file:', error);
+    //       } else {
+    //         console.log(pdfFilePath,'PDF file deleted successfully after 1 minutes.');
+    //       }
+    //     });
+    //   }, 1000 * 60 * 1000);
+    //   const filepathelm = pdfFilePath.split('/');
+    //   console.log('pdf genrated');
+    //    res.send({
+    //     res: 'success',
+    //     pdfFilePath: `http://localhost:3001/download/${filepathelm[filepathelm.length-1]}`
+    //    })
+    // });
+    let browser;
+    browser = pool.pop();
+    const page = await browser.newPage();
+    await page.setContent(staticData);
+    const buffer = await page.pdf({ printBackground: true, format: 'A4' });
+   return res.contentType('application/pdf').send(buffer);
+    // res.contentType('application/pdf');
+    // return  res.send(page);
    } catch (error) {
      console.log(error);
      res.status(501).send({
@@ -2006,6 +2027,29 @@ async function generatePDF(req,res) {
        })
    }
 }
+// Launch a smaller pool of Puppeteer instances (adjust as needed)
+
+async function generatePdf(htmlString) {
+  try {
+      const page = await cluster.task(async () => {
+      const page = await browser.newPage();
+      await page.setContent(htmlString);
+      const buffer = await page.pdf({ printBackground: true, format: 'A4' });
+      await page.close();
+      return buffer;
+    });
+    return page;
+  } catch (error) {
+    // Handle errors gracefully (e.g., log, send error message)
+    console.error('Error generating PDF:', error);
+    return null;
+  }
+}
+
+// Handle incoming requests with rate limiting and error handling
+
+
+// ... server setup and error handling
 async function getData(page){
     try {
         const response = await axios.post('http://192.168.1.27:1004/api/v1/IAMarks/IASubjectsMarks', {
@@ -2026,6 +2070,15 @@ async function getData(page){
         throw error;
     }
 }
+process.on('SIGTERM', () => {
+    server.close(async () => {
+        console.log('Server closed');
+        for (const browser of pool) {
+            await browser.close();
+        }
+        process.exit(0);
+    });
+});
 module.exports = {
     generatePDF
 }
