@@ -1662,16 +1662,25 @@ async function initializeBrowser() {
 }
 
 initializeBrowser();
-
+const generateUniqueFilePath = () => {
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, ''); // Format: YYYYMMDD
+    const timePart = now.toISOString().slice(11, 19).replace(/:/g, ''); // Format: HHMMSS
+    const uniqueString = `${"OutPutReport"}_${datePart}_${timePart}`;
+    return `./tmp/${uniqueString}.pdf`;
+};
 async function generatePDF(req, res) {
     try {
         if (!browser) {
             return res.status(503).send('Service Unavailable');
         }
-        
+        const path = generateUniqueFilePath();
         const page = await browser.newPage();
         await page.setContent(staticData);
-        const buffer = await page.pdf();
+        const buffer = await page.pdf({
+            path,
+            format: 'A4',
+        });
         
         await page.close(); 
         res.contentType('application/pdf').send(buffer);
